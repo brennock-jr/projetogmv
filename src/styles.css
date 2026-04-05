@@ -1,0 +1,24 @@
+@import "tailwindcss" source("../");
+
+@theme {
+  --color-military-green: #1a3320;
+  --color-military-olive: #4a5e2d;
+  --color-military-olive-light: #6b7c42;
+  --color-military-gold: #c4a535;
+  --color-parchment: #f4ede0;
+  --color-parchment-dark: #e8ddc8;
+}
+
+body {
+  @apply m-0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-parchment);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
