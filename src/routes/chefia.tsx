@@ -57,7 +57,7 @@ function formatarData(dataStr: string, horario?: string) {
 }
 
 function ChefiaPage() {
-  const { eventos: eventosIniciais, usuarios } = Route.useLoaderData()
+  const { eventos: eventosIniciais, usuarios: usuariosIniciais } = Route.useLoaderData()
   const [tab, setTab] = useState<'eventos' | 'usuarios'>('eventos')
   const [eventos, setEventos] = useState(eventosIniciais)
   const [usuarios, setUsuarios] = useState(usuariosIniciais)

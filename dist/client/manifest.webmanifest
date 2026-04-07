@@ -1,7 +1,7 @@
 {
-  "name": "GMV – Grupo Militar de Voluntários",
+  "name": "GMV – Grupo Missões Veteranos",
   "short_name": "GMV",
-  "description": "Portal do Grupo Militar de Voluntários",
+  "description": "Portal do Grupo Missões Veteranos",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

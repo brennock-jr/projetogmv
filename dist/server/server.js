@@ -64,7 +64,7 @@ function getResponse() {
 }
 var HEADERS = { TSS_SHELL: "X-TSS_SHELL" };
 async function getStartManifest(matchedRoutes) {
-  const { tsrStartManifest } = await import("./assets/_tanstack-start-manifest_v-B-JwlElc.js");
+  const { tsrStartManifest } = await import("./assets/_tanstack-start-manifest_v-WZXEXKJM.js");
   const startManifest = tsrStartManifest();
   const rootRoute = startManifest.routes[rootRouteId] = startManifest.routes[rootRouteId] || {};
   rootRoute.assets = rootRoute.assets || [];
@@ -93,34 +93,43 @@ const manifest = { "49106938b52c8bf2e7795ac418917757130e43844a341613882f98c17422
   importer: () => import("./assets/auth-CWosXs1Z.js")
 }, "1fef2a64a1f0450efed5dc893e302d803b54c02fd3d5ab0825ebfa54b41037d6": {
   functionName: "getEventos_createServerFn_handler",
-  importer: () => import("./assets/eventos.functions-DkOU7OB9.js")
+  importer: () => import("./assets/eventos.functions-8OFcpnTc.js")
 }, "b5a99b1b9f88f7e924785b6c161f57cfaf4bffd9b553456390107c2bb5318157": {
   functionName: "getEvento_createServerFn_handler",
-  importer: () => import("./assets/eventos.functions-DkOU7OB9.js")
+  importer: () => import("./assets/eventos.functions-8OFcpnTc.js")
 }, "fb57b54cfa8a0140f25e61c2ef87556814103581b469fd88b5f26e70df46f6c7": {
   functionName: "criarEvento_createServerFn_handler",
-  importer: () => import("./assets/eventos.functions-DkOU7OB9.js")
+  importer: () => import("./assets/eventos.functions-8OFcpnTc.js")
+}, "b8c80c02cd862951d6ca6f84b6798888e149d5cc4485f6bf45214eebb85970cf": {
+  functionName: "editarEvento_createServerFn_handler",
+  importer: () => import("./assets/eventos.functions-8OFcpnTc.js")
 }, "664b54311a3750dba0961fa9d12f661d1670f59a2c7228c078b80a8df6ae3a7d": {
   functionName: "deletarEvento_createServerFn_handler",
-  importer: () => import("./assets/eventos.functions-DkOU7OB9.js")
-}, "53265775e8a89bfff77f41a66a900333b60ab1966c927d1dea57c38db6ffc82c": {
-  functionName: "getUsuarios_createServerFn_handler",
-  importer: () => import("./assets/usuarios.functions-rc6nfYMw.js")
+  importer: () => import("./assets/eventos.functions-8OFcpnTc.js")
 }, "c39fb075a8e9b733ebffc5360e427596f193489cd4318666c1e622659c26007b": {
   functionName: "getInscricoesEvento_createServerFn_handler",
-  importer: () => import("./assets/inscricoes.functions-D4oLBjtB.js")
+  importer: () => import("./assets/inscricoes.functions-G9bFMdf1.js")
 }, "13b60cab3f34bbccbf61735be3a4ea41c800fb9757158d336a00d1d6cc23df21": {
   functionName: "getMinhasInscricoes_createServerFn_handler",
-  importer: () => import("./assets/inscricoes.functions-D4oLBjtB.js")
+  importer: () => import("./assets/inscricoes.functions-G9bFMdf1.js")
 }, "1850a4886a46bf45bae44a38c8311dc162a737d52c0ae5e85c729fa02bd4fd4f": {
   functionName: "inscreverUsuario_createServerFn_handler",
-  importer: () => import("./assets/inscricoes.functions-D4oLBjtB.js")
+  importer: () => import("./assets/inscricoes.functions-G9bFMdf1.js")
 }, "aff0db4c44c03b1a3662d9be1790c9bc76b7492a1bd902545eea9c1643e8cc0d": {
   functionName: "cancelarInscricao_createServerFn_handler",
-  importer: () => import("./assets/inscricoes.functions-D4oLBjtB.js")
+  importer: () => import("./assets/inscricoes.functions-G9bFMdf1.js")
 }, "98eab8930c0a37a94804f15d7d94f18f47679ffb9bb2e2abca70153d3e975b26": {
   functionName: "verificarInscricao_createServerFn_handler",
-  importer: () => import("./assets/inscricoes.functions-D4oLBjtB.js")
+  importer: () => import("./assets/inscricoes.functions-G9bFMdf1.js")
+}, "53265775e8a89bfff77f41a66a900333b60ab1966c927d1dea57c38db6ffc82c": {
+  functionName: "getUsuarios_createServerFn_handler",
+  importer: () => import("./assets/usuarios.functions-DHmUJlbg.js")
+}, "76bd8df7c9a6b16c8ef9002af90c133eed3f072a2c0b7842fb884c12a89a4100": {
+  functionName: "editarUsuario_createServerFn_handler",
+  importer: () => import("./assets/usuarios.functions-DHmUJlbg.js")
+}, "b88cb2cfbd06bad43dd10b4949e66c46264f2c72e4b9730d8defdba0777928f6": {
+  functionName: "criarUsuario_createServerFn_handler",
+  importer: () => import("./assets/usuarios.functions-DHmUJlbg.js")
 } };
 async function getServerFnById(id) {
   const serverFnInfo = manifest[id];
@@ -850,7 +859,7 @@ var entriesPromise;
 var baseManifestPromise;
 var cachedFinalManifestPromise;
 async function loadEntries() {
-  const routerEntry = await import("./assets/router-DfFyyK-n.js").then((n) => n.r);
+  const routerEntry = await import("./assets/router-BCfisQ4t.js").then((n) => n.r);
   return {
     startEntry: await import("./assets/start-HYkvq4Ni.js"),
     routerEntry
