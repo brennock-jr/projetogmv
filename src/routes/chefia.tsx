@@ -1,7 +1,8 @@
 import { createFileRoute, redirect, Link } from '@tanstack/react-router'
 import { getServerUser } from '@/lib/auth'
-import { getEventos, criarEvento, deletarEvento } from '@/server/eventos.functions'
-import { getUsuarios } from '@/server/usuarios.functions'
+import { getEventos, criarEvento, deletarEvento, editarEvento } from '@/server/eventos.functions'
+import { getUsuarios, editarUsuario, criarUsuario } from '@/server/usuarios.functions'
+import type { Usuario } from '@/server/usuarios.functions'
 import { useServerFn } from '@tanstack/react-start'
 import {
   CalendarDays,
@@ -16,6 +17,8 @@ import {
   X,
   Shield,
   AlertTriangle,
+  Pencil,
+  UserPlus,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import type { Evento, CategoriaAtividade } from '@/server/eventos.functions'
@@ -44,19 +47,24 @@ const categoriaConfig: Record<string, { icon: ReactNode; cor: string }> = {
 
 const CATEGORIAS: CategoriaAtividade[] = ['Acampamento', 'Trilha', 'Rapel', 'Airsoft']
 
-function formatarData(dataStr: string) {
-  return new Date(dataStr).toLocaleDateString('pt-BR', {
+function formatarData(dataStr: string, horario?: string) {
+  const data = new Date(dataStr).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   })
+  return horario ? `${data} às ${horario}` : data
 }
 
 function ChefiaPage() {
   const { eventos: eventosIniciais, usuarios } = Route.useLoaderData()
   const [tab, setTab] = useState<'eventos' | 'usuarios'>('eventos')
   const [eventos, setEventos] = useState(eventosIniciais)
+  const [usuarios, setUsuarios] = useState(usuariosIniciais)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const [mostrarFormUsuario, setMostrarFormUsuario] = useState(false)
+  const [editMode, setEditMode] = useState<string | null>(null)
+  const [editUserMode, setEditUserMode] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [mensagem, setMensagem] = useState('')
@@ -69,7 +77,11 @@ function ChefiaPage() {
   const [carregandoLista, setCarregandoLista] = useState(false)
 
   const criarFn = useServerFn(criarEvento)
+  const editarFn = useServerFn(editarEvento)
   const deletarFn = useServerFn(deletarEvento)
+  
+  const criarUserFn = useServerFn(criarUsuario)
+  const editarUserFn = useServerFn(editarUsuario)
 
   const [form, setForm] = useState({
     titulo: '',
@@ -81,25 +93,142 @@ function ChefiaPage() {
     vagas: 20,
   })
 
+  const [userForm, setUserForm] = useState({
+    nome: '',
+    email: '',
+    papel: 'agente',
+    metadata: {
+      idade: '',
+      altura: '',
+      peso: '',
+      tipoSanguineo: '',
+      localServico: '',
+      anoServico: '',
+    }
+  })
+
   const agora = new Date()
   const proximosEventos = eventos.filter((e) => new Date(e.data) >= agora)
   const eventosPassados = eventos.filter((e) => new Date(e.data) < agora)
 
-  const handleCriarEvento = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setForm({ titulo: '', descricao: '', categoria: 'Acampamento', data: '', horario: '', local: '', vagas: 20 })
+    setEditMode(null)
+    setMostrarFormulario(false)
+  }
+
+  const resetUserForm = () => {
+    setUserForm({
+      nome: '',
+      email: '',
+      papel: 'agente',
+      metadata: {
+        idade: '',
+        altura: '',
+        peso: '',
+        tipoSanguineo: '',
+        localServico: '',
+        anoServico: '',
+      }
+    })
+    setEditUserMode(null)
+    setMostrarFormulario(false)
+    setMostrarFormUsuario(false)
+  }
+
+  const handleEditarClick = (evento: Evento) => {
+    setForm({
+      titulo: evento.titulo,
+      descricao: evento.descricao,
+      categoria: evento.categoria,
+      data: evento.data,
+      horario: evento.horario,
+      local: evento.local,
+      vagas: evento.vagas,
+    })
+    setEditMode(evento.id)
+    setMostrarFormulario(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleEditarUserClick = (u: Usuario) => {
+    setUserForm({
+      nome: u.nome,
+      email: u.email,
+      papel: u.papel,
+      metadata: {
+        idade: u.metadata?.idade || '',
+        altura: u.metadata?.altura || '',
+        peso: u.metadata?.peso || '',
+        tipoSanguineo: u.metadata?.tipoSanguineo || '',
+        localServico: u.metadata?.localServico || '',
+        anoServico: u.metadata?.anoServico || '',
+      }
+    })
+    setEditUserMode(u.id)
+    setMostrarFormUsuario(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleSalvarEvento = async (e: React.FormEvent) => {
     e.preventDefault()
     setCarregando(true)
     setErro('')
     setMensagem('')
     try {
-      const novo = await criarFn({ data: { ...form, vagas: Number(form.vagas) } })
-      setEventos((prev) =>
-        [...prev, novo].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
-      )
-      setMostrarFormulario(false)
-      setForm({ titulo: '', descricao: '', categoria: 'Acampamento', data: '', horario: '', local: '', vagas: 20 })
-      setMensagem('Atividade criada com sucesso!')
+      if (editMode) {
+        const atualizado = await editarFn({ data: { ...form, id: editMode, vagas: Number(form.vagas) } })
+        setEventos((prev) =>
+          prev.map((ev) => (ev.id === editMode ? atualizado : ev)).sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+        )
+        setMensagem('Atividade atualizada com sucesso!')
+      } else {
+        const novo = await criarFn({ data: { ...form, vagas: Number(form.vagas) } })
+        setEventos((prev) =>
+          [...prev, novo].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+        )
+        setMensagem('Atividade criada com sucesso!')
+      }
+      resetForm()
     } catch (err) {
-      setErro((err as Error).message || 'Erro ao criar atividade.')
+      setErro((err as Error).message || 'Erro ao salvar atividade.')
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  const handleSalvarUsuario = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCarregando(true)
+    setErro('')
+    setMensagem('')
+    try {
+      if (editUserMode) {
+        const atualizado = await editarUserFn({
+          data: {
+            id: editUserMode,
+            nome: userForm.nome,
+            email: userForm.email,
+            papel: userForm.papel,
+            metadata: userForm.metadata
+          }
+        })
+        setUsuarios((prev) => prev.map((u) => (u.id === editUserMode ? atualizado : u)))
+        setMensagem('Usuário atualizado com sucesso!')
+      } else {
+        const novo = await criarUserFn({
+          data: {
+            nome: userForm.nome,
+            email: userForm.email,
+            papel: userForm.papel
+          }
+        })
+        setUsuarios((prev) => [novo, ...prev])
+        setMensagem('Usuário cadastrado com sucesso!')
+      }
+      resetUserForm()
+    } catch (err) {
+      setErro((err as Error).message || 'Erro ao salvar usuário.')
     } finally {
       setCarregando(false)
     }
@@ -218,7 +347,10 @@ function ChefiaPage() {
               Atividades ({eventos.length})
             </h2>
             <button
-              onClick={() => setMostrarFormulario(!mostrarFormulario)}
+              onClick={() => {
+                if (mostrarFormulario) resetForm()
+                else setMostrarFormulario(true)
+              }}
               className="flex items-center gap-2 bg-military-olive hover:bg-military-green text-white px-4 py-2 rounded text-sm font-semibold uppercase tracking-wider transition-colors"
             >
               {mostrarFormulario ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -226,13 +358,13 @@ function ChefiaPage() {
             </button>
           </div>
 
-          {/* Create Form */}
+          {/* Create/Edit Form */}
           {mostrarFormulario && (
             <div className="bg-parchment border-2 border-military-olive rounded-lg p-6 mb-6">
               <h3 className="font-bold text-military-green uppercase tracking-wider mb-4 text-sm">
-                Criar Nova Atividade
+                {editMode ? 'Editar Atividade' : 'Criar Nova Atividade'}
               </h3>
-              <form onSubmit={handleCriarEvento} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form onSubmit={handleSalvarEvento} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
                     Título *
@@ -325,11 +457,11 @@ function ChefiaPage() {
                     disabled={carregando}
                     className="px-6 py-2.5 bg-military-olive hover:bg-military-green text-white rounded font-semibold uppercase tracking-wider text-sm transition-colors disabled:opacity-60"
                   >
-                    {carregando ? 'Salvando...' : 'Criar Atividade'}
+                    {carregando ? 'Salvando...' : editMode ? 'Salvar Alterações' : 'Criar Atividade'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMostrarFormulario(false)}
+                    onClick={() => resetForm()}
                     className="px-6 py-2.5 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded text-sm font-medium transition-colors"
                   >
                     Cancelar
@@ -383,7 +515,7 @@ function ChefiaPage() {
                         <div className="flex items-center gap-3 text-sm text-gray-500 flex-shrink-0">
                           <span className="flex items-center gap-1">
                             <CalendarDays className="w-3.5 h-3.5" />
-                            {formatarData(evento.data)}
+                            {formatarData(evento.data, evento.horario)}
                           </span>
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5" />
@@ -402,6 +534,13 @@ function ChefiaPage() {
                           >
                             {eventoExpandido === evento.id ? 'Ocultar' : 'Inscritos'}
                          </button>
+                          <button
+                            onClick={() => handleEditarClick(evento)}
+                            className="p-1.5 text-military-olive hover:bg-military-olive/10 rounded transition-colors"
+                            title="Editar atividade"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
                           <Link
                             to="/atividades/$id"
                             params={{ id: evento.id }}
@@ -486,14 +625,152 @@ function ChefiaPage() {
             <h2 className="font-bold text-military-green uppercase tracking-wider text-base">
               Usuários Cadastrados ({usuarios.length})
             </h2>
+            <button
+              onClick={() => {
+                if (mostrarFormUsuario) resetUserForm()
+                else setMostrarFormUsuario(true)
+              }}
+              className="flex items-center gap-2 bg-military-olive hover:bg-military-green text-white px-4 py-2 rounded text-sm font-semibold uppercase tracking-wider transition-colors"
+            >
+              {mostrarFormUsuario ? <X className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+              {mostrarFormUsuario ? 'Cancelar' : 'Novo Usuário'}
+            </button>
           </div>
+
+          {/* User Create/Edit Form */}
+          {mostrarFormUsuario && (
+            <div className="bg-parchment border-2 border-military-olive rounded-lg p-6 mb-6">
+              <h3 className="font-bold text-military-green uppercase tracking-wider mb-4 text-sm">
+                {editUserMode ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
+              </h3>
+              <form onSubmit={handleSalvarUsuario} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                    Nome Completo *
+                  </label>
+                  <input
+                    type="text"
+                    value={userForm.nome}
+                    onChange={(e) => setUserForm({ ...userForm, nome: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:border-military-olive"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:border-military-olive"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                    Papel (Role) *
+                  </label>
+                  <select
+                    value={userForm.papel}
+                    onChange={(e) => setUserForm({ ...userForm, papel: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:border-military-olive"
+                  >
+                    <option value="agente">Agente</option>
+                    <option value="chefia">Chefia</option>
+                  </select>
+                </div>
+
+                {editUserMode && (
+                  <div className="sm:col-span-2 border-t border-gray-200 mt-2 pt-4">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Users className="w-4 h-4" /> Dados Cadastrais (Metadados)
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Idade</label>
+                        <input
+                          type="text"
+                          value={userForm.metadata.idade}
+                          onChange={(e) => setUserForm({ ...userForm, metadata: { ...userForm.metadata, idade: e.target.value }})}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Altura</label>
+                        <input
+                          type="text"
+                          value={userForm.metadata.altura}
+                          onChange={(e) => setUserForm({ ...userForm, metadata: { ...userForm.metadata, altura: e.target.value }})}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Peso</label>
+                        <input
+                          type="text"
+                          value={userForm.metadata.peso}
+                          onChange={(e) => setUserForm({ ...userForm, metadata: { ...userForm.metadata, peso: e.target.value }})}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tipo Sanguíneo</label>
+                        <input
+                          type="text"
+                          value={userForm.metadata.tipoSanguineo}
+                          onChange={(e) => setUserForm({ ...userForm, metadata: { ...userForm.metadata, tipoSanguineo: e.target.value }})}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Local de Serviço</label>
+                        <input
+                          type="text"
+                          value={userForm.metadata.localServico}
+                          onChange={(e) => setUserForm({ ...userForm, metadata: { ...userForm.metadata, localServico: e.target.value }})}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Ano de Serviço</label>
+                        <input
+                          type="text"
+                          value={userForm.metadata.anoServico}
+                          onChange={(e) => setUserForm({ ...userForm, metadata: { ...userForm.metadata, anoServico: e.target.value }})}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="sm:col-span-2 flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={carregando}
+                    className="px-6 py-2.5 bg-military-olive hover:bg-military-green text-white rounded font-semibold uppercase tracking-wider text-sm transition-colors disabled:opacity-60"
+                  >
+                    {carregando ? 'Salvando...' : editUserMode ? 'Salvar Alterações' : 'Cadastrar Usuário'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resetUserForm()}
+                    className="px-6 py-2.5 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded text-sm font-medium transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-sm text-amber-800 flex gap-2">
             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <p>
-              Para alterar o papel de um usuário (promover para Chefia), acesse o{' '}
-              <strong>Painel do Netlify → Identity → Usuários</strong> e edite o campo{' '}
-              <code className="bg-amber-100 px-1 rounded">app_metadata.roles</code>.
+              Nota: Alterações de papel (Chefia/Agente) aqui afetam apenas o banco de dados interno. 
+              Para acesso real ao sistema, as credenciais devem existir no Netlify Identity.
             </p>
           </div>
 
@@ -506,16 +783,17 @@ function ChefiaPage() {
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
               <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 grid grid-cols-12 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <span className="col-span-1">#</span>
-                <span className="col-span-4">Nome</span>
+                <span className="col-span-3">Nome</span>
                 <span className="col-span-4">Email</span>
                 <span className="col-span-2">Papel</span>
                 <span className="col-span-1">Desde</span>
+                <span className="col-span-1 text-right">Ações</span>
               </div>
               <div className="divide-y divide-gray-100">
                 {usuarios.map((usuario, idx) => (
                   <div key={usuario.id} className="px-4 py-3 grid grid-cols-12 text-sm items-center">
                     <span className="col-span-1 text-gray-400">{idx + 1}</span>
-                    <span className="col-span-4 font-medium text-gray-900 truncate">{usuario.nome}</span>
+                    <span className="col-span-3 font-medium text-gray-900 truncate">{usuario.nome}</span>
                     <span className="col-span-4 text-gray-600 truncate">{usuario.email}</span>
                     <span className="col-span-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${
@@ -530,6 +808,15 @@ function ChefiaPage() {
                     <span className="col-span-1 text-gray-400 text-xs">
                       {new Date(usuario.criadoEm).toLocaleDateString('pt-BR', { month: '2-digit', year: '2-digit' })}
                     </span>
+                    <div className="col-span-1 text-right">
+                      <button
+                        onClick={() => handleEditarUserClick(usuario)}
+                        className="p-1.5 text-military-olive hover:bg-military-olive/10 rounded transition-colors"
+                        title="Editar usuário"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

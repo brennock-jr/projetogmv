@@ -15,6 +15,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  AlertTriangle,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
@@ -42,13 +43,14 @@ const categoriaConfig: Record<string, { icon: ReactNode; cor: string; label: str
   Airsoft: { icon: <Target className="w-5 h-5" />, cor: 'bg-gray-700', label: 'Airsoft' },
 }
 
-function formatarData(dataStr: string) {
-  return new Date(dataStr).toLocaleDateString('pt-BR', {
+function formatarData(dataStr: string, horario?: string) {
+  const data = new Date(dataStr).toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
     year: 'numeric',
   })
+  return horario ? `${data} às ${horario}` : data
 }
 
 function AtividadeDetalhePage() {
@@ -80,6 +82,9 @@ function AtividadeDetalhePage() {
   const cat = categoriaConfig[evento.categoria]
   const vagasOcupadas = inscricoes.length
   const vagasRestantes = evento.vagas - vagasOcupadas
+
+  const userMeta = user?.user_metadata || {}
+  const perfilIncompleto = !userMeta.idade || !userMeta.altura || !userMeta.peso || !userMeta.termoAceite
 
   const handleInscrever = async () => {
     setCarregando(true)
@@ -147,9 +152,9 @@ function AtividadeDetalhePage() {
             <div className="flex items-start gap-3 p-4 bg-parchment rounded-lg">
               <CalendarDays className="w-5 h-5 text-military-olive mt-0.5" />
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Data e Horário</p>
                 <p className="text-sm font-medium text-gray-800 capitalize mt-0.5">
-                  {formatarData(evento.data)}
+                  {formatarData(evento.data, evento.horario)}
                 </p>
               </div>
             </div>
@@ -232,6 +237,24 @@ function AtividadeDetalhePage() {
                 <div className="flex items-center gap-2 text-gray-500">
                   <Clock className="w-5 h-5" />
                   <span>Atividade lotada — sem vagas disponíveis</span>
+                </div>
+              ) : perfilIncompleto ? (
+                <div className="w-full p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row items-center gap-4">
+                  <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="text-sm font-bold text-amber-800 uppercase tracking-tight">
+                      Perfil Incompleto ou Termo não Aceito
+                    </p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Para se inscrever em missões, você deve completar seu cadastro e aceitar o termo de consentimento.
+                    </p>
+                  </div>
+                  <Link
+                    to="/perfil"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold uppercase tracking-wider rounded transition-colors whitespace-nowrap"
+                  >
+                    Completar Perfil
+                  </Link>
                 </div>
               ) : (
                 <button
