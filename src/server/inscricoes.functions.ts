@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getStore } from '@netlify/blobs'
+import { getGenericStore } from '@/lib/storage'
 import { requireAuthMiddleware } from '@/middleware/identity'
 
 export interface Inscricao {
@@ -14,20 +14,20 @@ export const getInscricoesEvento = createServerFn({ method: 'GET' })
   .middleware([requireAuthMiddleware])
   .inputValidator((data: { eventoId: string }) => data)
   .handler(async ({ data }) => {
-    const store = getStore({ name: 'gmv-inscricoes', consistency: 'strong' })
-    const { blobs } = await store.list({ prefix: `${data.eventoId}/` })
+    const store = getGenericStore('gmv-inscricoes')
+    const blobs = await store.list({ prefix: `${data.eventoId}/` })
     if (!blobs.length) return []
-    const results = await Promise.all(blobs.map((b) => store.get(b.key, { type: 'json' })))
+    const results = await Promise.all(blobs.map((b) => store.get(b.key)))
     return results.filter(Boolean) as Inscricao[]
   })
 
 export const getMinhasInscricoes = createServerFn({ method: 'GET' })
   .middleware([requireAuthMiddleware])
   .handler(async ({ context }) => {
-    const store = getStore({ name: 'gmv-inscricoes', consistency: 'strong' })
-    const { blobs } = await store.list()
+    const store = getGenericStore('gmv-inscricoes')
+    const blobs = await store.list()
     if (!blobs.length) return []
-    const results = await Promise.all(blobs.map((b) => store.get(b.key, { type: 'json' })))
+    const results = await Promise.all(blobs.map((b) => store.get(b.key)))
     return (results.filter(Boolean) as Inscricao[]).filter(
       (i) => i.userId === context.user.id
     )
@@ -37,18 +37,32 @@ export const inscreverUsuario = createServerFn({ method: 'POST' })
   .middleware([requireAuthMiddleware])
   .inputValidator((data: { eventoId: string }) => data)
   .handler(async ({ data, context }) => {
-    const store = getStore({ name: 'gmv-inscricoes', consistency: 'strong' })
-    const key = `${data.eventoId}/${context.user.id}`
+    const user = context.user
+    const meta = user.user_metadata || {}
+
+    // Validação rigorosa de perfil
+    const camposObrigatorios = ['idade', 'altura', 'peso', 'termoAceite']
+    const pendentes = camposObrigatorios.filter(campo => !meta[campo])
+
+    if (pendentes.length > 0) {
+      if (pendentes.includes('termoAceite')) {
+        throw new Error('Você precisa aceitar o termo de consentimento no seu perfil antes de se inscrever.')
+      }
+      throw new Error('Perfil incompleto. Preencha sua idade, altura e peso no menu Perfil.')
+    }
+
+    const store = getGenericStore('gmv-inscricoes')
+    const key = `${data.eventoId}/${user.id}`
     const existente = await store.get(key)
     if (existente !== null) throw new Error('Você já está inscrito nesta atividade')
     const inscricao: Inscricao = {
       eventoId: data.eventoId,
-      userId: context.user.id,
-      userEmail: context.user.email || '',
-      userName: context.user.name || context.user.email || 'Agente GMV',
+      userId: user.id,
+      userEmail: user.email || '',
+      userName: user.user_metadata?.full_name || user.email || 'Agente GMV',
       inscritoEm: new Date().toISOString(),
     }
-    await store.setJSON(key, inscricao)
+    await store.set(key, inscricao)
     return inscricao
   })
 
@@ -56,7 +70,7 @@ export const cancelarInscricao = createServerFn({ method: 'POST' })
   .middleware([requireAuthMiddleware])
   .inputValidator((data: { eventoId: string }) => data)
   .handler(async ({ data, context }) => {
-    const store = getStore({ name: 'gmv-inscricoes', consistency: 'strong' })
+    const store = getGenericStore('gmv-inscricoes')
     const key = `${data.eventoId}/${context.user.id}`
     await store.delete(key)
     return { sucesso: true }
@@ -66,8 +80,9 @@ export const verificarInscricao = createServerFn({ method: 'GET' })
   .middleware([requireAuthMiddleware])
   .inputValidator((data: { eventoId: string }) => data)
   .handler(async ({ data, context }) => {
-    const store = getStore({ name: 'gmv-inscricoes', consistency: 'strong' })
+    const store = getGenericStore('gmv-inscricoes')
     const key = `${data.eventoId}/${context.user.id}`
     const inscricao = await store.get(key)
     return { inscrito: inscricao !== null }
   })
+

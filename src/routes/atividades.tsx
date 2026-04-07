@@ -33,12 +33,13 @@ const categoriaConfig: Record<string, { icon: ReactNode; cor: string }> = {
   Airsoft: { icon: <Target className="w-4 h-4" />, cor: 'bg-gray-700' },
 }
 
-function formatarData(dataStr: string) {
-  return new Date(dataStr).toLocaleDateString('pt-BR', {
+function formatarData(dataStr: string, horario?: string) {
+  const data = new Date(dataStr).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
   })
+  return horario ? `${data} às ${horario}` : data
 }
 
 function AtividadesPage() {
@@ -183,7 +184,7 @@ function AtividadeCard({ evento, passado }: { evento: Evento; passado?: boolean 
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <CalendarDays className="w-3.5 h-3.5 text-military-olive flex-shrink-0" />
-            <span>{formatarData(evento.data)}</span>
+            <span>{formatarData(evento.data, evento.horario)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <MapPin className="w-3.5 h-3.5 text-military-olive flex-shrink-0" />
